@@ -131,14 +131,54 @@ def delete_phone(conn, client_id, phone):
 
 
 def delete_client(conn, client_id):
-    pass
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT phone_id FROM clients_phone
+                WHERE client_id = %s;
+            """, (client_id,))
+        phone_id = cur.fetchone()[0]
+        cur.execute("""
+            SELECT email_id FROM clients_email
+                WHERE client_id = %s;
+            """, (client_id,))
+        email_id = cur.fetchone()[0]
+        cur.execute("""
+            DELETE FROM clients_phone
+                WHERE client_id = %s;        
+        """, (client_id,))
+        cur.execute("""
+            DELETE FROM clients_email
+                WHERE client_id = %s;       
+        """, (client_id,))
+        cur.execute("""
+            DELETE FROM phone
+                WHERE id = %s;
+        """, (phone_id,))
+        cur.execute("""
+            DELETE FROM email
+                WHERE id = %s;        
+        """, (email_id,))
+        cur.execute("""
+            DELETE FROM client
+                WHERE id = %s;        
+        """, (client_id,))
+        conn.commit()
 
 
 def find_client(conn, first_name=None, last_name=None, email=None, phone=None):
-    pass
+    with conn.cursor() as cur:
+        if first_name is not None or last_name is not None or email is not None or phone is not None:
+            cur.execute("""
+            SELECT c.id, first_name, last_name, email, phone FROM client c 
+                JOIN clients_email ce ON c.id = ce.client_id 
+                JOIN clients_phone cp ON c.id = cp.client_id 
+                JOIN email e ON ce.email_id = e.id 
+                JOIN phone p ON cp.phone_id = p.id 
+                where first_name = %s or last_name = %s or email = %s or phone = %s
+            """, (first_name, last_name, email, phone,))
+            print(cur.fetchall())
 
 
 conn = psycopg.connect(dbname='Clients', user='postgres', password='postgres')
-
 
 conn.close()
